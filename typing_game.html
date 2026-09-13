@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Typing Tower Defense</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div id="game-container">
+
+        <!-- NEW START SCREEN UI -->
+        <div id="start-screen">
+            <h1>Typing Tower Defense</h1>
+            <button id="start-btn" disabled>Loading words...</button>
+        </div>
+
+        <div id="top-ui">Typing: <span id="current-typing" class="highlight"></span></div>
+        <div id="debug-info" style="position: absolute; top: 10px; right: 10px; color: #0f0; background: rgba(0,0,0,0.7); padding: 10px; font-family: monospace; display: block; z-index: 100; pointer-events: none;"></div>
+        <canvas id="gameCanvas" width="1600" height="900"></canvas>
+    </div>
+
+    <div id="bottom-bar">
+        <div style="display: flex; flex-direction: column; margin-right: auto;">
+            <div id="score-display" style="font-size: 20px; color: #fff; margin-bottom: 5px;">Score: 0</div>
+            <div id="money-display" style="font-size: 20px; color: #ffd700;">Money: $100</div>
+            <button id="pause-btn" class="ui-placeholder" style="margin-top: 10px; width: 80px; padding: 5px; height: auto; color: white;">Pause (`)</button>
+        </div>
+        
+        <!-- Tower Purchase Area -->
+        <div id="tower-shop" style="display: flex; gap: 20px; align-items: center;">
+            <div id="buy-slow-tower" class="ui-placeholder" style="width: 80px;">[1] Buy Slow<br>$60</div>
+            <div id="buy-morph-tower" class="ui-placeholder" style="width: 80px;">[2] Buy Morph<br>$75</div>
+            <div style="font-size: 14px; color: #aaa; margin-left: 10px;">Press '=' for Upgrades</div>
+        </div>
+
+        <!-- Upgrade Area (Hidden by default) -->
+        <div id="upgrade-panel" style="display: none; align-items: center; gap: 15px; margin-left: 20px; padding-left: 20px; border-left: 2px solid #555;">
+            <div style="font-size: 14px; color: #aaa;">Upgrades:</div>
+            <div id="upg-range" class="ui-placeholder" style="width: 100px; height: auto; padding: 5px;">Range<br>$50</div>
+            <div id="upg-slow" class="ui-placeholder" style="width: 100px; height: auto; padding: 5px;">Slow<br>$75</div>
+            <div id="upg-targets" class="ui-placeholder" style="width: 100px; height: auto; padding: 5px;">Targets<br>$40</div>
+            <div id="upg-firerate" class="ui-placeholder" style="width: 100px; height: auto; padding: 5px;">Fire Rate<br>$50</div>
+        </div>
+    </div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
