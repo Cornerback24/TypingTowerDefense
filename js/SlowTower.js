@@ -1,4 +1,4 @@
-import { Config, TOWER_TYPES } from './Config.js';
+import { Config, pathOccupancy } from './Config.js';
 
 export class SlowTower {
     static getBaseStats() {
@@ -6,10 +6,10 @@ export class SlowTower {
     }
 
     static calculateETMPS(stats) {
-        const slowPercentage = 1.0 - stats.slowAmount; // e.g. 1.0 - 0.5 = 0.5
-        const rangeModifier = stats.range / 200; // Base range 200 = 1.0x
-        const baseETMPS = (stats.maxTargets * 10) * slowPercentage * 0.1; // 10 threat avg target, 0.1 active modifier
-        return baseETMPS * rangeModifier;
+        const occupancy = pathOccupancy(stats.range);
+        const slowFrac = 1.0 - stats.slowAmount;
+        const raw = stats.maxTargets * Config.REF_AVG_THREAT * slowFrac * occupancy;
+        return raw * Config.LEAK_FRACTION;
     }
 
     static getBaseCost() {
@@ -22,7 +22,8 @@ export class SlowTower {
         
         let newStats = { ...currentStats };
         if (upgradeType === 'range') {
-            newStats.range += amount;
+            if (currentStats.range >= Config.MAX_TOWER_RANGE) return 0;
+            newStats.range = Math.min(Config.MAX_TOWER_RANGE, newStats.range + amount);
         } else if (upgradeType === 'slowAmount') {
             newStats.slowAmount = Math.max(0.1, newStats.slowAmount - amount);
         } else if (upgradeType === 'maxTargets') {
@@ -51,7 +52,8 @@ export class SlowTower {
             range: { 
                 level: 1, 
                 amount: 50,
-                cost: SlowTower.calculateUpgradeCost(baseStats, 'range', 50)
+                cost: SlowTower.calculateUpgradeCost(baseStats, 'range', 50),
+                maxed: false
             },
             slowAmount: { 
                 level: 1, 
@@ -72,7 +74,7 @@ export class SlowTower {
         if (!upg || upg.maxed) return false;
         
         if (type === 'range') {
-            this.range += upg.amount;
+            this.range = Math.min(Config.MAX_TOWER_RANGE, this.range + upg.amount);
         } else if (type === 'slowAmount') {
             this.slowAmount = Math.max(0.1, this.slowAmount - upg.amount); // Lower is slower
         } else if (type === 'maxTargets') {
@@ -85,6 +87,9 @@ export class SlowTower {
         let currentStats = { range: this.range, slowAmount: this.slowAmount, maxTargets: this.maxTargets };
         
         if (type === 'slowAmount' && this.slowAmount <= 0.1) {
+            upg.maxed = true;
+            upg.cost = null;
+        } else if (type === 'range' && this.range >= Config.MAX_TOWER_RANGE) {
             upg.maxed = true;
             upg.cost = null;
         } else {

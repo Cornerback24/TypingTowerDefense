@@ -16,11 +16,33 @@ export const TOWER_TYPES = {
 export const Config = {
     CANVAS_WIDTH: 1600,
     CANVAS_HEIGHT: 900,
-    
-    // Economy Constants
-    BASE_COST_PER_ETMPS: 60,
-    UPG_COST_PER_ETMPS: 75
+
+    // Mean center-to-edge distance on the 1600x900 canvas
+    AVG_PATH_PX: 660,
+    REF_AVG_THREAT: 4,
+    REF_MORPH_DELTA: 4.5,
+    REF_MORPH_RANGE: 250,
+    // Below corner coverage from center (~918). Enough for a strong circle, not the whole map.
+    MAX_TOWER_RANGE: 500,
+
+    // Delay and morph are not full threat deletion; typing stays primary DPS
+    LEAK_FRACTION: 0.08,
+    MORPH_STICKINESS: 0.15,
+    MORPH_UPTIME: 0.70,
+
+    // C ≳ 600 so all-in tower spend cannot outrun late regen
+    BASE_COST_PER_ETMPS: 700,
+    UPG_COST_PER_ETMPS: 875
 };
+
+export function pathOccupancy(range) {
+    return Math.max(0, range / Config.AVG_PATH_PX);
+}
+
+export function morphRangeUptime(range) {
+    // No upper cap: a hard clamp made further range upgrades cost $0.
+    return Math.max(0.85, range / Config.REF_MORPH_RANGE);
+}
 
 export const State = {
     WORDS: [],

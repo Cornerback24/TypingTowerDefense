@@ -1,4 +1,4 @@
-import { Config, State, ENEMY_TYPES, TOWER_TYPES } from './Config.js';
+import { Config, State, ENEMY_TYPES, morphRangeUptime } from './Config.js';
 
 export class MorphTower {
     static getBaseStats() {
@@ -6,10 +6,10 @@ export class MorphTower {
     }
 
     static calculateETMPS(stats) {
-        const fireRateSec = stats.fireRate / 1000;
-        const mitigationRate = 5 / fireRateSec; // Mitigates 5 threat per shot
-        const rangeModifier = stats.range / 250; // Base range 250 = 1.0x
-        return mitigationRate * rangeModifier;
+        const shotsPerSec = 1000 / stats.fireRate;
+        const rangeUptime = morphRangeUptime(stats.range);
+        const raw = Config.REF_MORPH_DELTA * shotsPerSec * rangeUptime;
+        return raw * Config.MORPH_UPTIME * Config.MORPH_STICKINESS;
     }
 
     static getBaseCost() {
@@ -22,7 +22,8 @@ export class MorphTower {
         
         let newStats = { ...currentStats };
         if (upgradeType === 'range') {
-            newStats.range += amount;
+            if (currentStats.range >= Config.MAX_TOWER_RANGE) return 0;
+            newStats.range = Math.min(Config.MAX_TOWER_RANGE, newStats.range + amount);
         } else if (upgradeType === 'fireRate') {
             newStats.fireRate = Math.max(500, newStats.fireRate - amount);
         }
@@ -49,7 +50,8 @@ export class MorphTower {
             range: { 
                 level: 1, 
                 amount: 50,
-                cost: MorphTower.calculateUpgradeCost(baseStats, 'range', 50)
+                cost: MorphTower.calculateUpgradeCost(baseStats, 'range', 50),
+                maxed: false
             },
             fireRate: { 
                 level: 1, 
@@ -63,7 +65,7 @@ export class MorphTower {
         let upg = this.upgrades[type];
         if (!upg || upg.maxed) return false;
         
-        if (type === 'range') this.range += upg.amount;
+        if (type === 'range') this.range = Math.min(Config.MAX_TOWER_RANGE, this.range + upg.amount);
         else if (type === 'fireRate') this.fireRate = Math.max(500, this.fireRate - upg.amount); // Min fire rate 500ms
 
         upg.level++;
@@ -72,6 +74,9 @@ export class MorphTower {
         let currentStats = { range: this.range, fireRate: this.fireRate };
         
         if (type === 'fireRate' && this.fireRate <= 500) {
+            upg.maxed = true;
+            upg.cost = null;
+        } else if (type === 'range' && this.range >= Config.MAX_TOWER_RANGE) {
             upg.maxed = true;
             upg.cost = null;
         } else {

@@ -43,8 +43,8 @@
 
 ### 3.5. Towers & Economy
 - Players earn money from defeating enemies to buy and upgrade towers.
-- **Slow Tower ($50)**: Casts an AOE slow effect on multiple targets. Upgrades: Range, Slow Amount, Max Targets.
-- **Morph Tower ($100)**: Periodically fires a beam at a high-tier enemy, "downgrading" it to an easier tier (e.g., Elite -> Tough -> Basic -> Super Easy) with a shorter word. Upgrades: Range, Fire Rate.
+- **Slow Tower**: Casts an AOE slow effect on multiple targets. Base price is derived from ETMPS (about $100 at default stats). Upgrades: Range, Slow Amount, Max Targets.
+- **Morph Tower**: Periodically fires a beam at a high-tier enemy, "downgrading" it to an easier tier (e.g., Elite -> Tough -> Basic -> Super Easy) with a shorter word. Base price is derived from ETMPS (about $110 at default stats). Upgrades: Range, Fire Rate.
 - **Placement & Upgrades**: Managed via mouse clicks or keyboard shortcuts (numbers/symbols). Towers cannot be placed on top of each other.
 
 ## 4. Entity Specifications
