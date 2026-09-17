@@ -115,6 +115,7 @@ export class Enemy {
             this.damage = 30;
             this.originalThreat = 0; // Spawned from boss
         }
+        this.baseSpeed = this.speed;
     }
 
     isVisible() {

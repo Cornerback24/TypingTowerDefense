@@ -606,7 +606,8 @@ export class Game {
             minion.y = boss.y;
             minion.startSpawnAnimation(targetX, targetY, 0.8);
 
-            minion.speed = boss.speed;
+            minion.speed = boss.baseSpeed;
+            minion.baseSpeed = boss.baseSpeed;
             minion.bossGroupId = groupId;
             this.enemies.push(minion);
         }
