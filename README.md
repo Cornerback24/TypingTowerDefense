@@ -11,7 +11,7 @@ The goal of this project is to build an interactive, browser-based typing tower 
 - **Towers:** Money can be used to purchase and place various towers. These towers will provide helpful effects to the player, such as slowing down enemies, dealing damage over time, or simplifying the words needed to be typed.
 
 ## Play
-Play online: https://github.com/OWNER/TypingTowerDefense (GitHub Pages URL will be added after deploy)
+Play online: [https://cornerback24.github.io/TypingTowerDefense/](https://cornerback24.github.io/TypingTowerDefense/)
 
 Or run locally with a static server (required for `fetch` and ES modules):
 
