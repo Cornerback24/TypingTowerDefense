@@ -1,7 +1,9 @@
 import { State } from './Config.js';
 import { Game } from './Game.js';
+import * as HighScores from './HighScores.js';
 
 window.onload = async () => {
+    HighScores.bindUi();
     const startBtn = document.getElementById('start-btn');
 
     try {

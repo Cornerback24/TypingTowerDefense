@@ -124,7 +124,7 @@ export class MorphTower {
             // We use pendingDeath to keep them visible briefly for the beam animation
             target.pendingDeath = true;
             target.speed = 0; // Freeze in place
-            game.score += target.scoreValue || 0;
+            game.addScore(target.scoreValue || 0, target.type);
             game.money += target.moneyValue || 0;
             game.updateUI(); // Reflect changes
         } else {

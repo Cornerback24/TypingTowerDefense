@@ -3,6 +3,7 @@ import { Base } from './Base.js';
 import { Enemy } from './Enemy.js';
 import { SlowTower } from './SlowTower.js';
 import { MorphTower } from './MorphTower.js';
+import * as HighScores from './HighScores.js';
 
 export class Game {
     constructor() {
@@ -23,6 +24,7 @@ export class Game {
         this.towerSelectPage = 0;
 
         this.score = 0;
+        this.bossProgressScore = 0;
         this.money = 0;
 
         this.bossesSpawned = 0;
@@ -35,6 +37,7 @@ export class Game {
         this.timeElapsed = 0;
         this.isGameOver = false;
         this.isManuallyPaused = false;
+        this.pausedForHighScores = false;
         
         this.debugInfo = document.getElementById('debug-info');
 
@@ -42,6 +45,7 @@ export class Game {
         this.setupInputs();
         this.setupMouseInputs();
         this.setupShop();
+        HighScores.setActiveGame(this);
         this.updateUI();
         this.animationFrameId = requestAnimationFrame((timestamp) => this.loop(timestamp));
     }
@@ -220,8 +224,74 @@ export class Game {
         this.updateUpgradePanel();
     }
 
+    showHighScoresOverlay({ allowClose, showPlayAgain, showNameEntry, showFinalScore }) {
+        HighScores.showOverlay({
+            allowClose,
+            showPlayAgain,
+            showNameEntry,
+            showFinalScore,
+            score: this.score
+        });
+    }
+
+    openHighScoresFromHud() {
+        if (HighScores.isOverlayOpen()) return;
+        if (this.isGameOver) {
+            this.showHighScoresOverlay({
+                allowClose: false,
+                showPlayAgain: true,
+                showNameEntry: false,
+                showFinalScore: true
+            });
+            return;
+        }
+        this.pausedForHighScores = !this.isManuallyPaused;
+        if (!this.isManuallyPaused) {
+            this.isManuallyPaused = true;
+            document.getElementById("pause-btn").innerText = "Resume (`)";
+        }
+        this.showHighScoresOverlay({
+            allowClose: true,
+            showPlayAgain: false,
+            showNameEntry: false,
+            showFinalScore: false
+        });
+    }
+
+    closeHighScoresOverlay() {
+        if (this.isGameOver) return;
+        HighScores.hideOverlay();
+        if (this.pausedForHighScores) {
+            this.isManuallyPaused = false;
+            document.getElementById("pause-btn").innerText = "Pause (`)";
+        }
+        this.pausedForHighScores = false;
+    }
+
+    onGameOver() {
+        const showNameEntry = HighScores.qualifies(this.score);
+        this.showHighScoresOverlay({
+            allowClose: false,
+            showPlayAgain: !showNameEntry,
+            showNameEntry,
+            showFinalScore: true
+        });
+    }
+
+    submitHighScoreName() {
+        if (!HighScores.isOverlayOpen() || !HighScores.isNameEntryVisible()) return;
+        HighScores.addScore(HighScores.getNameInputValue(), this.score);
+        this.showHighScoresOverlay({
+            allowClose: false,
+            showPlayAgain: true,
+            showNameEntry: false,
+            showFinalScore: true
+        });
+    }
+
     setupInputs() {
         const togglePause = () => {
+            if (HighScores.isOverlayOpen() || this.isGameOver) return;
             this.isManuallyPaused = !this.isManuallyPaused;
             document.getElementById('pause-btn').innerText = this.isManuallyPaused ? "Resume (`)" : "Pause (`)";
         };
@@ -235,6 +305,9 @@ export class Game {
         });
 
         this.handleKeyDown = (e) => {
+            if (HighScores.isOverlayOpen() || this.isGameOver) {
+                return;
+            }
             if (e.key === '`') {
                 togglePause();
                 return;
@@ -427,7 +500,7 @@ export class Game {
                 this.handleBossMinionDeath(defeatedEnemy.bossGroupId, 'typed');
             }
 
-            this.score += defeatedEnemy.scoreValue;
+            this.addScore(defeatedEnemy.scoreValue, defeatedEnemy.type);
             this.money += defeatedEnemy.moneyValue;
             this.updateUI();
             
@@ -533,6 +606,7 @@ export class Game {
             minion.y = boss.y;
             minion.startSpawnAnimation(targetX, targetY, 0.8);
 
+            minion.speed = boss.speed;
             minion.bossGroupId = groupId;
             this.enemies.push(minion);
         }
@@ -554,6 +628,23 @@ export class Game {
         }
     }
 
+    addScore(amount, type) {
+        this.score += amount;
+        if (type !== ENEMY_TYPES.SLOW_EASY) {
+            this.bossProgressScore += amount;
+        }
+    }
+
+    handleBossLeak(groupId) {
+        if (!this.bossGroups[groupId]) return;
+        delete this.bossGroups[groupId];
+        this.scheduleNextBoss();
+    }
+
+    scheduleNextBoss() {
+        this.nextBossScore = this.bossProgressScore + 350 + (this.bossesSpawned - 1) * 50;
+    }
+
     checkBossGroupComplete(groupId) {
         const groupInfo = this.bossGroups[groupId];
         
@@ -564,7 +655,7 @@ export class Game {
 
         delete this.bossGroups[groupId];
         
-        this.nextBossScore = this.score + 350 + (this.bossesSpawned - 1) * 50;
+        this.scheduleNextBoss();
         
         let speedMultiplier = 1 + (this.score / 1000);
         let wordList = State.WORDS_SUPER_SHORT && State.WORDS_SUPER_SHORT.length > 0 ? State.WORDS_SUPER_SHORT : State.WORDS;
@@ -601,13 +692,13 @@ export class Game {
     }
 
     isPaused() {
-        return this.isManuallyPaused || this.placingTowerType !== null || this.selectedTower !== null || this.towerSelectMode;
+        return this.isManuallyPaused || HighScores.isOverlayOpen() || this.placingTowerType !== null || this.selectedTower !== null || this.towerSelectMode;
     }
 
     update(deltaTime) {
         this.timeElapsed += deltaTime / 1000;
         
-        if (this.score >= this.nextBossScore) {
+        if (this.bossProgressScore >= this.nextBossScore) {
             this.spawnBoss();
         }
 
@@ -738,7 +829,11 @@ export class Game {
                 this.enemies.splice(i, 1);
                 
                 if (bossGroupId !== null) {
-                    this.handleBossMinionDeath(bossGroupId, 'base');
+                    if (enemy.type === ENEMY_TYPES.BOSS) {
+                        this.handleBossLeak(bossGroupId);
+                    } else {
+                        this.handleBossMinionDeath(bossGroupId, 'base');
+                    }
                 }
                 
                 if (this.currentInput.length > 0 && enemy.matchWord.startsWith(this.currentInput)) {
@@ -746,8 +841,9 @@ export class Game {
                     document.getElementById('current-typing').innerText = "";
                 }
                 
-                if (this.base.currentHealth <= 0) {
+                if (this.base.currentHealth <= 0 && !this.isGameOver) {
                     this.isGameOver = true;
+                    this.onGameOver();
                 }
             }
         }
@@ -761,7 +857,7 @@ export class Game {
             let maxActiveThreat = Math.floor(10 + this.score / 50);
             let currentThreat = this.enemies.reduce((sum, enemy) => sum + (enemy.originalThreat || 0), 0);
             
-            let scoreUntilNextBoss = this.nextBossScore === Infinity ? "Boss Active" : Math.max(0, this.nextBossScore - this.score);
+            let scoreUntilNextBoss = this.nextBossScore === Infinity ? "Boss Active" : Math.max(0, this.nextBossScore - this.bossProgressScore);
             
             this.debugInfo.innerHTML = `
                 <b>Debug Info:</b><br>
@@ -892,7 +988,6 @@ export class Game {
             this.ctx.fillStyle = "white";
             this.ctx.font = "30px Arial";
             this.ctx.fillText("Score: " + this.score, Config.CANVAS_WIDTH / 2, Config.CANVAS_HEIGHT / 2 + 60);
-            this.ctx.fillText("Press F5 to Restart", Config.CANVAS_WIDTH / 2, Config.CANVAS_HEIGHT / 2 + 100);
             this.ctx.textAlign = "left"; 
         } else if (this.isManuallyPaused) {
             this.ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
