@@ -32,7 +32,14 @@ export const Config = {
 
     // C ≳ 600 so all-in tower spend cannot outrun late regen
     BASE_COST_PER_ETMPS: 700,
-    UPG_COST_PER_ETMPS: 875
+    UPG_COST_PER_ETMPS: 875,
+
+    // Small outward nudge when an enemy is defeated (nearby enemies further from base)
+    DEFEAT_KNOCKBACK_RADIUS: 80,
+    DEFEAT_KNOCKBACK_BASE_PX: 10,
+    DEFEAT_KNOCKBACK_MAX_PX: 25,
+    DEFEAT_KNOCKBACK_DURATION: 0.18,
+    DEFEAT_KNOCKBACK_BOSS_RESIST: 15
 };
 
 export function pathOccupancy(range) {

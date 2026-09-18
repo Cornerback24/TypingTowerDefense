@@ -122,6 +122,7 @@ export class MorphTower {
         if (target.type === ENEMY_TYPES.SUPER_EASY || target.type === ENEMY_TYPES.SLOW_EASY) {
             // Eliminate directly since they can't be downgraded
             // We use pendingDeath to keep them visible briefly for the beam animation
+            game.applyDefeatKnockback(target);
             target.pendingDeath = true;
             target.speed = 0; // Freeze in place
             game.addScore(target.scoreValue || 0, target.type);

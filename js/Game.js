@@ -503,9 +503,55 @@ export class Game {
             this.addScore(defeatedEnemy.scoreValue, defeatedEnemy.type);
             this.money += defeatedEnemy.moneyValue;
             this.updateUI();
+
+            this.applyDefeatKnockback(defeatedEnemy);
             
             this.enemies.splice(closestEnemyIndex, 1);
             this.currentInput = "";
+        }
+    }
+
+    applyDefeatKnockback(defeatedEnemy) {
+        const sourceThreat = defeatedEnemy.originalThreat || 0;
+        if (sourceThreat <= 0) return;
+
+        const radius = Config.DEFEAT_KNOCKBACK_RADIUS;
+        const defeatedDistToBase = Math.hypot(
+            defeatedEnemy.x - this.base.x,
+            defeatedEnemy.y - this.base.y
+        );
+
+        for (const enemy of this.enemies) {
+            if (enemy === defeatedEnemy || enemy.pendingDeath) continue;
+
+            const dx = enemy.x - defeatedEnemy.x;
+            const dy = enemy.y - defeatedEnemy.y;
+            const dist = Math.hypot(dx, dy);
+            if (dist <= 0 || dist >= radius) continue;
+
+            const enemyDistToBase = Math.hypot(enemy.x - this.base.x, enemy.y - this.base.y);
+            if (enemyDistToBase <= defeatedDistToBase) continue;
+
+            let targetThreat = enemy.originalThreat || 0;
+            if (enemy.type === ENEMY_TYPES.BOSS || enemy.type === ENEMY_TYPES.BOSS_MINION) {
+                targetThreat = Config.DEFEAT_KNOCKBACK_BOSS_RESIST;
+            } else {
+                targetThreat = Math.max(targetThreat, 1);
+            }
+
+            const falloff = 1 - dist / radius;
+            let pushPx = Config.DEFEAT_KNOCKBACK_BASE_PX * (sourceThreat / targetThreat) * falloff;
+            pushPx = Math.min(pushPx, Config.DEFEAT_KNOCKBACK_MAX_PX);
+            if (pushPx <= 0) continue;
+
+            const fromBaseX = enemy.x - this.base.x;
+            const fromBaseY = enemy.y - this.base.y;
+            const fromBaseDist = Math.hypot(fromBaseX, fromBaseY);
+            if (fromBaseDist <= 0) continue;
+
+            const targetX = enemy.x + (fromBaseX / fromBaseDist) * pushPx;
+            const targetY = enemy.y + (fromBaseY / fromBaseDist) * pushPx;
+            enemy.startSpawnAnimation(targetX, targetY, Config.DEFEAT_KNOCKBACK_DURATION);
         }
     }
 
