@@ -193,12 +193,14 @@ export class MorphTower {
         this.markBeam(partner, game);
     }
 
-    applySoften(target, game) {
-        // Slow only — no word re-roll (that felt like the enemy was dodging typing)
-        target.applyMorphSoften(
-            game.timeElapsed,
-            Config.MORPH_SOFTEN_MODIFIER,
-            Config.MORPH_SOFTEN_DURATION
+    applyNudge(target, game) {
+        const dx = target.x - game.base.x;
+        const dy = target.y - game.base.y;
+        const dist = Math.hypot(dx, dy) || 1;
+        target.startSpawnAnimation(
+            target.x + (dx / dist) * Config.MORPH_NUDGE_PX,
+            target.y + (dy / dist) * Config.MORPH_NUDGE_PX,
+            Config.MORPH_NUDGE_DURATION
         );
         this.markBeam(target, game);
     }
@@ -223,15 +225,9 @@ export class MorphTower {
             }
         }
 
-        // Soften fallback: highest-tier isolate without an active soften
-        for (const primary of eligible) {
-            if (primary.hasActiveMorphSoften(game.timeElapsed)) continue;
-            this.applySoften(primary, game);
-            this.lastFired = game.timeElapsed * 1000;
-            return;
-        }
-
-        // All isolates already softened — hold fire until a merge or soften window opens
+        // Nudge fallback: push highest-tier isolate slightly away from the base
+        this.applyNudge(eligible[0], game);
+        this.lastFired = game.timeElapsed * 1000;
     }
 
     draw(ctx, isSelected) {

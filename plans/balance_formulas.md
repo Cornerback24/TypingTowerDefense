@@ -16,11 +16,11 @@ ETMPS is evaluated on a **fixed reference field** (not live score), so shop pric
 | `REF_MORPH_RANGE` (250) | Morph base range; range uptime is `range / 250` (floor 0.85). |
 | `MAX_TOWER_RANGE` (500) | Hard cap on Slow and Morph range upgrades. Below full-map coverage from center (~918 to a corner). |
 | `LEAK_FRACTION` (0.08) | Slow converts only this slice of delay into equivalent removal. |
-| `MORPH_STICKINESS` (0.2) | Merge removes a unit and frees that partner’s threat (spawn may refill); this fraction of Δthreat sticks. Soften is ignored in ETMPS. Higher than the old tier-drop stickiness (0.15). |
-| `MORPH_UPTIME` (0.70) | Idle time, typing lock, no-partner holds, and untargetable bosses/minions. |
+| `MORPH_STICKINESS` (0.2) | Merge removes a unit and frees that partner’s threat (spawn may refill); this fraction of Δthreat sticks. Nudge fallback is ignored in ETMPS. Higher than the old tier-drop stickiness (0.15). |
+| `MORPH_UPTIME` (0.70) | Idle time, typing lock, and untargetable bosses/minions. |
 | `MORPH_MERGE_TETHER` (120) | Max distance between merge primary and partner. |
-| `MORPH_SOFTEN_MODIFIER` (0.7) | Temporary speed multiplier from soften fallback. |
-| `MORPH_SOFTEN_DURATION` (2.0) | Soften duration in seconds; cannot refresh while active. |
+| `MORPH_NUDGE_PX` (22) | Outward radial push (px) when no merge partner is in tether range. |
+| `MORPH_NUDGE_DURATION` (0.18) | Duration of the nudge spawn animation in seconds. |
 | `BASE_COST_PER_ETMPS` (700) | Dollars per ETMPS for a new tower. Must stay **≳ 600** so `dM/ds` cannot beat post-5000 regen (`dR/ds = 0.001` if all money is spent on towers). |
 | `UPG_COST_PER_ETMPS` (875) | 1.25× base; mild extra cost on tall upgrades. |
 
@@ -47,7 +47,7 @@ Overlapping Slow auras do not stack (`Math.min` on `speedModifier`).
 
 ### 2. Morph Tower
 
-Morph’s primary shot merges two eligible enemies in the same merge group. Combat tiers (Basic / Tough / Elite) merge among themselves: the partner is absorbed with no payout; the survivor keeps the higher tier (stay-same when equal), re-rolls a word from that tier’s pool (never ≤2 chars), takes `min` speed and `max` threat. Slow Easy only merges with Slow Easy (stays Slow Easy, re-rolls a super-short word); Super Easy only with Super Easy. Soften fallback (no compatible partner) applies a brief weak slow only — word, type, and threat stay unchanged; soften is not priced into ETMPS. Bosses and minions stay untargetable.
+Morph’s primary shot merges two eligible enemies in the same merge group. Combat tiers (Basic / Tough / Elite) merge among themselves: the partner is absorbed with no payout; the survivor keeps the higher tier (stay-same when equal), re-rolls a word from that tier’s pool (never ≤2 chars), takes `min` speed and `max` threat. Slow Easy only merges with Slow Easy (stays Slow Easy, re-rolls a super-short word); Super Easy only with Super Easy. Nudge fallback (no compatible partner) pushes the target a short distance away from the base — word, type, and threat stay unchanged; nudge is not priced into ETMPS. Bosses and minions stay untargetable.
 
 Merge frees the absorbed partner’s threat on the spawn cap, so refill can still happen; `MORPH_STICKINESS` models how much of that removal sticks.
 

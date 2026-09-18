@@ -33,8 +33,8 @@ export const Config = {
     MORPH_UPTIME: 0.70,
 
     MORPH_MERGE_TETHER: 120,
-    MORPH_SOFTEN_MODIFIER: 0.7,
-    MORPH_SOFTEN_DURATION: 2.0,
+    MORPH_NUDGE_PX: 22,
+    MORPH_NUDGE_DURATION: 0.18,
 
     // C ≳ 600 so all-in tower spend cannot outrun late regen
     BASE_COST_PER_ETMPS: 700,
