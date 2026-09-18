@@ -47,7 +47,7 @@ Overlapping Slow auras do not stack (`Math.min` on `speedModifier`).
 
 ### 2. Morph Tower
 
-Morph’s primary shot merges two eligible enemies (Basic / Tough / Elite). The partner is absorbed with no payout; the survivor keeps the higher tier (stay-same when equal), re-rolls a word from that tier’s pool (never ≤2 chars), takes `min` speed and `max` threat. Soften fallback (no partner) applies a brief weak slow only — word, type, and threat stay unchanged; soften is not priced into ETMPS.
+Morph’s primary shot merges two eligible enemies in the same merge group. Combat tiers (Basic / Tough / Elite) merge among themselves: the partner is absorbed with no payout; the survivor keeps the higher tier (stay-same when equal), re-rolls a word from that tier’s pool (never ≤2 chars), takes `min` speed and `max` threat. Slow Easy only merges with Slow Easy (stays Slow Easy, re-rolls a super-short word); Super Easy only with Super Easy. Soften fallback (no compatible partner) applies a brief weak slow only — word, type, and threat stay unchanged; soften is not priced into ETMPS. Bosses and minions stay untargetable.
 
 Merge frees the absorbed partner’s threat on the spawn cap, so refill can still happen; `MORPH_STICKINESS` models how much of that removal sticks.
 

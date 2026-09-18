@@ -45,6 +45,15 @@ export class MorphTower {
         return Math.round(marginalETMPS * Config.UPG_COST_PER_ETMPS);
     }
 
+    static mergeGroup(type) {
+        if (type === ENEMY_TYPES.BASIC || type === ENEMY_TYPES.TOUGH || type === ENEMY_TYPES.ELITE) {
+            return 'combat';
+        }
+        if (type === ENEMY_TYPES.SLOW_EASY) return 'slow_easy';
+        if (type === ENEMY_TYPES.SUPER_EASY) return 'super_easy';
+        return null;
+    }
+
     static wordListForType(type) {
         if (type === ENEMY_TYPES.ELITE) {
             return State.WORDS_LONG.length > 0 ? State.WORDS_LONG : State.WORDS;
@@ -52,7 +61,10 @@ export class MorphTower {
         if (type === ENEMY_TYPES.TOUGH) {
             return State.WORDS_MEDIUM.length > 0 ? State.WORDS_MEDIUM : State.WORDS;
         }
-        // Basic and any other morphable type: short words only (never super-short)
+        if (type === ENEMY_TYPES.SLOW_EASY || type === ENEMY_TYPES.SUPER_EASY) {
+            return State.WORDS_SUPER_SHORT.length > 0 ? State.WORDS_SUPER_SHORT : State.WORDS;
+        }
+        // Basic: short words only (never super-short)
         return State.WORDS_SHORT.length > 0 ? State.WORDS_SHORT : State.WORDS;
     }
 
@@ -129,13 +141,7 @@ export class MorphTower {
 
     isEligible(enemy, game) {
         if (!enemy.isVisible() || enemy.pendingDeath || enemy.isDead) return false;
-        if (enemy.type === ENEMY_TYPES.BOSS || enemy.type === ENEMY_TYPES.BOSS_MINION) return false;
-        // Morph only acts on normal typing tiers (no Super Easy / Slow Easy)
-        if (enemy.type !== ENEMY_TYPES.BASIC &&
-            enemy.type !== ENEMY_TYPES.TOUGH &&
-            enemy.type !== ENEMY_TYPES.ELITE) {
-            return false;
-        }
+        if (!MorphTower.mergeGroup(enemy.type)) return false;
 
         const isBeingTyped = game.currentInput.length > 0 && enemy.matchWord.startsWith(game.currentInput);
         if (isBeingTyped) return false;
@@ -146,10 +152,12 @@ export class MorphTower {
     }
 
     findPartner(primary, eligible) {
+        const group = MorphTower.mergeGroup(primary.type);
         let best = null;
         let bestDist = Infinity;
         for (const enemy of eligible) {
             if (enemy === primary) continue;
+            if (MorphTower.mergeGroup(enemy.type) !== group) continue;
             const dist = Math.hypot(enemy.x - primary.x, enemy.y - primary.y);
             if (dist <= Config.MORPH_MERGE_TETHER && dist < bestDist) {
                 best = enemy;
