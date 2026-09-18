@@ -16,6 +16,9 @@ export class Enemy {
         this.startY = 0;
         this.targetSpawnX = 0;
         this.targetSpawnY = 0;
+
+        this.morphSoftenUntil = 0;
+        this.morphSoftenAmount = 1;
         
         this.applyTypeProperties(type, speedMultiplier);
 
@@ -123,7 +126,16 @@ export class Enemy {
                 this.y + this.radius >= 0 && this.y - this.radius <= Config.CANVAS_HEIGHT);
     }
 
-    update(deltaTime, targetX, targetY) {
+    hasActiveMorphSoften(timeElapsed) {
+        return this.morphSoftenUntil > timeElapsed;
+    }
+
+    applyMorphSoften(timeElapsed, amount, duration) {
+        this.morphSoftenAmount = amount;
+        this.morphSoftenUntil = timeElapsed + duration;
+    }
+
+    update(deltaTime, targetX, targetY, timeElapsed = 0) {
         if (this.spawnAnimationTimer > 0) {
             this.spawnAnimationTimer -= deltaTime / 1000;
             
@@ -143,12 +155,17 @@ export class Enemy {
             return; // Don't move towards base while animating
         }
 
+        let moveModifier = this.speedModifier;
+        if (this.hasActiveMorphSoften(timeElapsed)) {
+            moveModifier = Math.min(moveModifier, this.morphSoftenAmount);
+        }
+
         const dx = targetX - this.x;
         const dy = targetY - this.y;
         const distance = Math.hypot(dx, dy);
 
         if (distance > 0) {
-            const adjustedSpeed = this.speed * this.speedModifier * (deltaTime / (1000 / 60));
+            const adjustedSpeed = this.speed * moveModifier * (deltaTime / (1000 / 60));
             this.x += (dx / distance) * adjustedSpeed;
             this.y += (dy / distance) * adjustedSpeed;
         }

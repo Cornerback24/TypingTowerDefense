@@ -44,7 +44,7 @@
 ### 3.5. Towers & Economy
 - Players earn money from defeating enemies to buy and upgrade towers.
 - **Slow Tower**: Casts an AOE slow effect on multiple targets. Base price is derived from ETMPS (about $100 at default stats). Upgrades: Range, Slow Amount, Max Targets.
-- **Morph Tower**: Periodically fires a beam at a high-tier enemy, "downgrading" it to an easier tier (e.g., Elite -> Tough -> Basic -> Super Easy) with a shorter word. Base price is derived from ETMPS (about $110 at default stats). Upgrades: Range, Fire Rate.
+- **Morph Tower**: Periodically tries to merge two nearby eligible enemies into one (higher tier wins; same-tier stays the same). Absorbed enemies grant no money or score. If no merge partner is in tether range, applies a weak soften (brief slow only; word unchanged). Never creates Super Easy / ≤2-letter words. Base price is derived from ETMPS. Upgrades: Range, Fire Rate.
 - **Placement & Upgrades**: Managed via mouse clicks or keyboard shortcuts (numbers/symbols). Towers cannot be placed on top of each other.
 
 ## 4. Entity Specifications
@@ -55,6 +55,6 @@
 | Basic | 2 | 3-4 chars | Red | Fast speed, low damage/reward |
 | Tough | 5 | 5-7 chars | Orange | Medium speed, medium damage/reward |
 | Elite | 10 | 8+ chars | Purple | Slow speed, high damage/reward |
-| Super Easy | 1 | ≤ 2 chars | Gray | Result of Morph Tower downgrade |
-| Slow Easy | 1 | Any | Light Gray | Result of Boss defeat reward |
+| Super Easy | 1 | ≤ 2 chars | Gray | Unused by Morph (legacy type); not spawned |
+| Slow Easy | 1 | ≤ 2 chars | Light Gray | Result of Boss defeat reward |
 | Boss | N/A | Dataset | Dark Blue | Spawns minions on death |

@@ -864,7 +864,7 @@ export class Game {
                 continue;
             }
             
-            enemy.update(deltaTime, this.base.x, this.base.y);
+            enemy.update(deltaTime, this.base.x, this.base.y, this.timeElapsed);
             
             let dx = this.base.x - enemy.x;
             let dy = this.base.y - enemy.y;

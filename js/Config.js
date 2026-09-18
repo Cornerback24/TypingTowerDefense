@@ -20,15 +20,21 @@ export const Config = {
     // Mean center-to-edge distance on the 1600x900 canvas
     AVG_PATH_PX: 660,
     REF_AVG_THREAT: 4,
-    REF_MORPH_DELTA: 4.5,
+    // Typical absorbed-partner threat under Morph priority targeting (merge removes a unit)
+    REF_MORPH_DELTA: 3.5,
     REF_MORPH_RANGE: 250,
     // Below corner coverage from center (~918). Enough for a strong circle, not the whole map.
     MAX_TOWER_RANGE: 500,
 
     // Delay and morph are not full threat deletion; typing stays primary DPS
     LEAK_FRACTION: 0.08,
-    MORPH_STICKINESS: 0.15,
+    // Absorbed partner is gone; spawn may refill freed threat — stickier than old tier-drop Morph (0.15)
+    MORPH_STICKINESS: 0.2,
     MORPH_UPTIME: 0.70,
+
+    MORPH_MERGE_TETHER: 120,
+    MORPH_SOFTEN_MODIFIER: 0.7,
+    MORPH_SOFTEN_DURATION: 2.0,
 
     // C ≳ 600 so all-in tower spend cannot outrun late regen
     BASE_COST_PER_ETMPS: 700,

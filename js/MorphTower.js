@@ -1,5 +1,13 @@
 import { Config, State, ENEMY_TYPES, morphRangeUptime } from './Config.js';
 
+const DIFFICULTY_RANK = {
+    [ENEMY_TYPES.ELITE]: 5,
+    [ENEMY_TYPES.TOUGH]: 4,
+    [ENEMY_TYPES.BASIC]: 3,
+    [ENEMY_TYPES.SUPER_EASY]: 2,
+    [ENEMY_TYPES.SLOW_EASY]: 1
+};
+
 export class MorphTower {
     static getBaseStats() {
         return { range: 250, fireRate: 3000 };
@@ -35,6 +43,39 @@ export class MorphTower {
         if (marginalETMPS <= 0) return 0;
         
         return Math.round(marginalETMPS * Config.UPG_COST_PER_ETMPS);
+    }
+
+    static wordListForType(type) {
+        if (type === ENEMY_TYPES.ELITE) {
+            return State.WORDS_LONG.length > 0 ? State.WORDS_LONG : State.WORDS;
+        }
+        if (type === ENEMY_TYPES.TOUGH) {
+            return State.WORDS_MEDIUM.length > 0 ? State.WORDS_MEDIUM : State.WORDS;
+        }
+        // Basic and any other morphable type: short words only (never super-short)
+        return State.WORDS_SHORT.length > 0 ? State.WORDS_SHORT : State.WORDS;
+    }
+
+    static pickWord(type, avoidWord) {
+        const list = MorphTower.wordListForType(type);
+        if (list.length === 0) return avoidWord || '';
+        if (list.length === 1) return list[0];
+
+        let word = list[Math.floor(Math.random() * list.length)];
+        if (avoidWord && list.length > 1) {
+            let attempts = 0;
+            while (word === avoidWord && attempts < 8) {
+                word = list[Math.floor(Math.random() * list.length)];
+                attempts++;
+            }
+        }
+        return word;
+    }
+
+    static higherType(a, b) {
+        const rankA = DIFFICULTY_RANK[a.type] || 0;
+        const rankB = DIFFICULTY_RANK[b.type] || 0;
+        return rankA >= rankB ? a.type : b.type;
     }
 
     constructor(x, y) {
@@ -86,71 +127,103 @@ export class MorphTower {
         return true;
     }
 
+    isEligible(enemy, game) {
+        if (!enemy.isVisible() || enemy.pendingDeath || enemy.isDead) return false;
+        if (enemy.type === ENEMY_TYPES.BOSS || enemy.type === ENEMY_TYPES.BOSS_MINION) return false;
+        // Morph only acts on normal typing tiers (no Super Easy / Slow Easy)
+        if (enemy.type !== ENEMY_TYPES.BASIC &&
+            enemy.type !== ENEMY_TYPES.TOUGH &&
+            enemy.type !== ENEMY_TYPES.ELITE) {
+            return false;
+        }
+
+        const isBeingTyped = game.currentInput.length > 0 && enemy.matchWord.startsWith(game.currentInput);
+        if (isBeingTyped) return false;
+
+        const dx = enemy.x - this.x;
+        const dy = enemy.y - this.y;
+        return Math.hypot(dx, dy) <= this.range;
+    }
+
+    findPartner(primary, eligible) {
+        let best = null;
+        let bestDist = Infinity;
+        for (const enemy of eligible) {
+            if (enemy === primary) continue;
+            const dist = Math.hypot(enemy.x - primary.x, enemy.y - primary.y);
+            if (dist <= Config.MORPH_MERGE_TETHER && dist < bestDist) {
+                best = enemy;
+                bestDist = dist;
+            }
+        }
+        return best;
+    }
+
+    markBeam(enemy, game) {
+        enemy.isMorphedBy = this;
+        enemy.morphTime = game.timeElapsed;
+    }
+
+    applyMerge(primary, partner, game) {
+        const survivorType = MorphTower.higherType(primary, partner);
+        const minSpeed = Math.min(primary.speed, partner.speed);
+        const maxThreat = Math.max(primary.originalThreat || 0, partner.originalThreat || 0);
+        const newWord = MorphTower.pickWord(survivorType, primary.word);
+
+        primary.word = newWord;
+        primary.matchWord = newWord.replace(/\s/g, '');
+        primary.applyTypeProperties(survivorType, 1);
+        primary.speed = minSpeed;
+        primary.baseSpeed = minSpeed;
+        primary.originalThreat = maxThreat;
+
+        // Absorb partner: no money, no score
+        partner.pendingDeath = true;
+        partner.speed = 0;
+
+        this.markBeam(primary, game);
+        this.markBeam(partner, game);
+    }
+
+    applySoften(target, game) {
+        // Slow only — no word re-roll (that felt like the enemy was dodging typing)
+        target.applyMorphSoften(
+            game.timeElapsed,
+            Config.MORPH_SOFTEN_MODIFIER,
+            Config.MORPH_SOFTEN_DURATION
+        );
+        this.markBeam(target, game);
+    }
+
     update(enemies, game) {
         if (game.timeElapsed * 1000 - this.lastFired < this.fireRate) {
             return;
         }
 
-        // Find eligible enemies in range
-        let inRange = enemies.filter(enemy => {
-            if (!enemy.isVisible()) return false;
-            if (enemy.type === ENEMY_TYPES.BOSS || enemy.type === ENEMY_TYPES.BOSS_MINION) return false; // Cannot target bosses or minions
-            
-            // Cannot target enemies the player has started typing
-            const isBeingTyped = game.currentInput.length > 0 && enemy.matchWord.startsWith(game.currentInput);
-            if (isBeingTyped) return false;
-            
-            let dx = enemy.x - this.x;
-            let dy = enemy.y - this.y;
-            return Math.hypot(dx, dy) <= this.range;
-        });
+        let eligible = enemies.filter(enemy => this.isEligible(enemy, game));
+        if (eligible.length === 0) return;
 
-        if (inRange.length === 0) return;
+        eligible.sort((a, b) => (DIFFICULTY_RANK[b.type] || 0) - (DIFFICULTY_RANK[a.type] || 0));
 
-        // Prioritize highest difficulty
-        const difficultyRank = { [ENEMY_TYPES.ELITE]: 5, [ENEMY_TYPES.TOUGH]: 4, [ENEMY_TYPES.BASIC]: 3, [ENEMY_TYPES.SUPER_EASY]: 2, [ENEMY_TYPES.SLOW_EASY]: 1 };
-        
-        inRange.sort((a, b) => {
-            return difficultyRank[b.type] - difficultyRank[a.type];
-        });
-
-        let target = inRange[0];
-        
-        target.isMorphedBy = this;
-        target.morphTime = game.timeElapsed; // Store time to show beam temporarily
-
-        if (target.type === ENEMY_TYPES.SUPER_EASY || target.type === ENEMY_TYPES.SLOW_EASY) {
-            // Eliminate directly since they can't be downgraded
-            // We use pendingDeath to keep them visible briefly for the beam animation
-            game.applyDefeatKnockback(target);
-            target.pendingDeath = true;
-            target.speed = 0; // Freeze in place
-            game.addScore(target.scoreValue || 0, target.type);
-            game.money += target.moneyValue || 0;
-            game.updateUI(); // Reflect changes
-        } else {
-            let newType = ENEMY_TYPES.SUPER_EASY;
-            let newWordList = State.WORDS_SUPER_SHORT;
-            
-            if (target.type === ENEMY_TYPES.ELITE) {
-                newType = ENEMY_TYPES.TOUGH;
-                newWordList = State.WORDS_MEDIUM.length > 0 ? State.WORDS_MEDIUM : State.WORDS;
-            } else if (target.type === ENEMY_TYPES.TOUGH) {
-                newType = ENEMY_TYPES.BASIC;
-                newWordList = State.WORDS_SHORT.length > 0 ? State.WORDS_SHORT : State.WORDS;
-            } else if (target.type === ENEMY_TYPES.BASIC) {
-                newType = ENEMY_TYPES.SUPER_EASY;
-                newWordList = State.WORDS_SUPER_SHORT.length > 0 ? State.WORDS_SUPER_SHORT : State.WORDS;
+        // Prefer merge: first primary (by tier) that has a tether partner
+        for (const primary of eligible) {
+            const partner = this.findPartner(primary, eligible);
+            if (partner) {
+                this.applyMerge(primary, partner, game);
+                this.lastFired = game.timeElapsed * 1000;
+                return;
             }
-
-            let newWord = newWordList[Math.floor(Math.random() * newWordList.length)] || target.word;
-
-            // Apply speed multiplier based on current game score logic
-            let speedMultiplier = 1 + (game.score / 1000);
-            target.morphTo(newType, newWord, speedMultiplier);
         }
-        
-        this.lastFired = game.timeElapsed * 1000;
+
+        // Soften fallback: highest-tier isolate without an active soften
+        for (const primary of eligible) {
+            if (primary.hasActiveMorphSoften(game.timeElapsed)) continue;
+            this.applySoften(primary, game);
+            this.lastFired = game.timeElapsed * 1000;
+            return;
+        }
+
+        // All isolates already softened — hold fire until a merge or soften window opens
     }
 
     draw(ctx, isSelected) {
