@@ -127,6 +127,12 @@ export class Enemy {
         if (this.spawnAnimationTimer > 0) {
             this.spawnAnimationTimer -= deltaTime / 1000;
             
+            // Chase host while being absorbed so the pull tracks a moving survivor
+            if (this.morphAbsorbHost) {
+                this.targetSpawnX = this.morphAbsorbHost.x;
+                this.targetSpawnY = this.morphAbsorbHost.y;
+            }
+
             let t = 1 - (this.spawnAnimationTimer / this.spawnAnimationDuration);
             if (t > 1) t = 1;
             
@@ -160,15 +166,20 @@ export class Enemy {
     }
 
     drawBody(ctx) {
+        let r = this.radius;
+        if (this.morphAbsorbHost && this.spawnAnimationDuration > 0) {
+            const progress = 1 - Math.max(0, this.spawnAnimationTimer) / this.spawnAnimationDuration;
+            r = this.radius * Math.max(0.15, 1 - progress * 0.9);
+        }
         ctx.beginPath();
-        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.arc(this.x, this.y, r, 0, Math.PI * 2);
         ctx.fillStyle = this.color; 
         ctx.fill();
         ctx.closePath();
     }
 
     drawText(ctx, currentInput, drawnTextRects) {
-        if (!this.isVisible()) return;
+        if (!this.isVisible() || this.morphAbsorbHost) return;
 
         ctx.font = "bold 20px Arial";
         ctx.textAlign = "left";

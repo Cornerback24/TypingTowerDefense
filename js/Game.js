@@ -843,13 +843,18 @@ export class Game {
 
         for (let enemy of this.enemies) {
             enemy.isSlowedBy = null;
-            if (enemy.isMorphedBy && this.timeElapsed - enemy.morphTime > 0.2) {
-                enemy.isMorphedBy = null;
-                
-                // If it was waiting to die after beam rendering, mark it dead now
+            const morphAge = this.timeElapsed - (enemy.morphTime || 0);
+
+            if (enemy.morphAbsorbHost && morphAge > Config.MORPH_ABSORB_DURATION) {
+                enemy.morphAbsorbHost = null;
                 if (enemy.pendingDeath) {
                     enemy.isDead = true;
                 }
+            }
+
+            const beamDur = enemy.morphBeamDuration != null ? enemy.morphBeamDuration : 0.2;
+            if (enemy.isMorphedBy && morphAge > beamDur) {
+                enemy.isMorphedBy = null;
             }
         }
         for (let tower of this.towers) {
@@ -952,6 +957,15 @@ export class Game {
                 this.ctx.lineTo(enemy.x, enemy.y);
                 this.ctx.strokeStyle = 'rgba(39, 174, 96, 0.8)';
                 this.ctx.lineWidth = 5;
+                this.ctx.stroke();
+            }
+            if (enemy.morphAbsorbHost) {
+                const host = enemy.morphAbsorbHost;
+                this.ctx.beginPath();
+                this.ctx.moveTo(host.x, host.y);
+                this.ctx.lineTo(enemy.x, enemy.y);
+                this.ctx.strokeStyle = 'rgba(39, 174, 96, 0.9)';
+                this.ctx.lineWidth = 4;
                 this.ctx.stroke();
             }
             enemy.drawBody(this.ctx);

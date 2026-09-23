@@ -167,9 +167,10 @@ export class MorphTower {
         return best;
     }
 
-    markBeam(enemy, game) {
+    markBeam(enemy, game, duration = 0.2) {
         enemy.isMorphedBy = this;
         enemy.morphTime = game.timeElapsed;
+        enemy.morphBeamDuration = duration;
     }
 
     applyMerge(primary, partner, game) {
@@ -185,12 +186,15 @@ export class MorphTower {
         primary.baseSpeed = minSpeed;
         primary.originalThreat = maxThreat;
 
-        // Absorb partner: no money, no score
+        // Absorb partner: no money, no score — pull into host
         partner.pendingDeath = true;
         partner.speed = 0;
+        partner.morphAbsorbHost = primary;
+        partner.morphTime = game.timeElapsed;
+        partner.startSpawnAnimation(primary.x, primary.y, Config.MORPH_ABSORB_DURATION);
 
-        this.markBeam(primary, game);
-        this.markBeam(partner, game);
+        // Tower → host only; host → absorbed is drawn via morphAbsorbHost
+        this.markBeam(primary, game, Config.MORPH_ABSORB_DURATION);
     }
 
     applyNudge(target, game) {
