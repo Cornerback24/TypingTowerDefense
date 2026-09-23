@@ -791,8 +791,9 @@ export class Game {
         }
 
         let nextRequiredThreat = this.nextSpawnType === ENEMY_TYPES.ELITE ? 10 : (this.nextSpawnType === ENEMY_TYPES.TOUGH ? 5 : 2);
-        
-        while (this.threatBudget >= nextRequiredThreat && currentThreat < maxActiveThreat) {
+
+        // Only spawn the rolled type when it fully fits — never downgrade into leftover threat slots.
+        while (this.threatBudget >= nextRequiredThreat && currentThreat + nextRequiredThreat <= maxActiveThreat) {
             let type = this.nextSpawnType;
             let wordList = State.WORDS_SHORT;
             let requiredThreat = nextRequiredThreat;
@@ -803,21 +804,6 @@ export class Game {
                 wordList = State.WORDS_MEDIUM.length > 0 ? State.WORDS_MEDIUM : State.WORDS;
             } else {
                 wordList = State.WORDS_SHORT.length > 0 ? State.WORDS_SHORT : State.WORDS;
-            }
-            
-            // Downgrade enemy if over cap
-            if (currentThreat + requiredThreat > maxActiveThreat) {
-                if (type === ENEMY_TYPES.ELITE && currentThreat + 5 <= maxActiveThreat) {
-                    type = ENEMY_TYPES.TOUGH;
-                    wordList = State.WORDS_MEDIUM.length > 0 ? State.WORDS_MEDIUM : State.WORDS;
-                    requiredThreat = 5;
-                } else if ((type === ENEMY_TYPES.ELITE || type === ENEMY_TYPES.TOUGH) && currentThreat + 2 <= maxActiveThreat) {
-                    type = ENEMY_TYPES.BASIC;
-                    wordList = State.WORDS_SHORT.length > 0 ? State.WORDS_SHORT : State.WORDS;
-                    requiredThreat = 2;
-                } else {
-                    break;
-                }
             }
             
             const randomWord = wordList[Math.floor(Math.random() * wordList.length)];
