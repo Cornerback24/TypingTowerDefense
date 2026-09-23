@@ -23,6 +23,10 @@ export const Config = {
     // Typical absorbed-partner threat under Morph priority targeting (merge removes a unit)
     REF_MORPH_DELTA: 3.5,
     REF_MORPH_RANGE: 250,
+    // Slow base range. The extra range exponent is 1 here, so level-1 price is unchanged.
+    REF_SLOW_RANGE: 200,
+    // 0 would keep flat range prices. 0.5 makes each +50 on a larger circle cost more.
+    RANGE_VALUE_EXP: 0.5,
     // Below corner coverage from center (~918). Enough for a strong circle, not the whole map.
     MAX_TOWER_RANGE: 500,
 
@@ -50,12 +54,15 @@ export const Config = {
 };
 
 export function pathOccupancy(range) {
-    return Math.max(0, range / Config.AVG_PATH_PX);
+    const linear = range / Config.AVG_PATH_PX;
+    const curve = Math.pow(range / Config.REF_SLOW_RANGE, Config.RANGE_VALUE_EXP);
+    return Math.max(0, linear * curve);
 }
 
 export function morphRangeUptime(range) {
     // No upper cap: a hard clamp made further range upgrades cost $0.
-    return Math.max(0.85, range / Config.REF_MORPH_RANGE);
+    const linear = range / Config.REF_MORPH_RANGE;
+    return Math.max(0.85, Math.pow(linear, 1 + Config.RANGE_VALUE_EXP));
 }
 
 export const State = {

@@ -13,7 +13,9 @@ ETMPS is evaluated on a **fixed reference field** (not live score), so shop pric
 | `AVG_PATH_PX` (660) | Mean center-to-edge walk on the 1600×900 canvas. Used for Slow occupancy. |
 | `REF_AVG_THREAT` (4) | Typical enemy threat (between Basic 2 and Tough 5). |
 | `REF_MORPH_DELTA` (3.5) | Typical absorbed-partner threat per Morph merge under priority targeting. |
-| `REF_MORPH_RANGE` (250) | Morph base range; range uptime is `range / 250` (floor 0.85). |
+| `REF_MORPH_RANGE` (250) | Morph base range. Range uptime is `(range / 250) ^ (1 + RANGE_VALUE_EXP)`, floor 0.85. | 
+| `REF_SLOW_RANGE` (200) | Slow base range. Extra range exponent is 1 here, so the level-1 Slow price is unchanged. |
+| `RANGE_VALUE_EXP` (0.5) | Extra convexity on range. Each +50 on a larger circle costs more. 0 would keep flat range prices. |
 | `MAX_TOWER_RANGE` (500) | Hard cap on Slow and Morph range upgrades. Below full-map coverage from center (~918 to a corner). |
 | `LEAK_FRACTION` (0.08) | Slow converts only this slice of delay into equivalent removal. |
 | `MORPH_STICKINESS` (0.2) | Merge removes a unit and frees that partner’s threat (spawn may refill); this fraction of Δthreat sticks. Nudge fallback is ignored in ETMPS. Higher than the old tier-drop stickiness (0.15). |
@@ -39,7 +41,8 @@ Slowing delays enemies; it does not delete spawn threat. Occupancy is the fracti
 **Formula:**
 `ETMPS = maxTargets * REF_AVG_THREAT * (1 - slowAmount) * occupancy * LEAK_FRACTION`
 
-*   `occupancy = range / AVG_PATH_PX`
+*   `occupancy = (range / AVG_PATH_PX) * (range / REF_SLOW_RANGE) ^ RANGE_VALUE_EXP`
+*   At base range the extra factor is 1, so the level-1 price matches a linear occupancy. Later +50 steps cost more.
 *   Range upgrades stop at `MAX_TOWER_RANGE` (500).
 *   `slowAmount`: speed multiplier (0.5 = half speed). Lower is a stronger slow.
 
@@ -55,10 +58,11 @@ Merge frees the absorbed partner’s threat on the spawn cap, so refill can stil
 `ETMPS = REF_MORPH_DELTA * shotsPerSec * rangeUptime * MORPH_UPTIME * MORPH_STICKINESS`
 
 *   `shotsPerSec = 1000 / fireRate`
-*   `rangeUptime = max(0.85, range / REF_MORPH_RANGE)`
+*   `rangeUptime = max(0.85, (range / REF_MORPH_RANGE) ^ (1 + RANGE_VALUE_EXP))`
+*   At base range this is 1, same as the old linear uptime. Later +50 steps cost more.
 *   Range upgrades stop at `MAX_TOWER_RANGE` (500) and show MAX, same as fire rate.
 
-Fire rate scales as `1 / interval`, so the last steps toward 500ms are expensive.
+Fire rate scales as `1 / interval`, so the last steps toward 500ms are expensive. Range scales with the extra exponent, so repeated range purchases also rise.
 
 ---
 
