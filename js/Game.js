@@ -19,6 +19,7 @@ export class Game {
         this.mouseY = 0;
 
         this.currentInput = "";
+        this.lastLetterTypedAt = null;
 
         this.towerSelectMode = false;
         this.towerSelectPage = 0;
@@ -438,6 +439,7 @@ export class Game {
                 this.currentInput = this.currentInput.slice(0, -1);
             } 
             else if (e.key.length === 1 && e.key.match(/[a-z]/i)) {
+                this.lastLetterTypedAt = this.timeElapsed;
                 const testInput = this.currentInput + e.key.toLowerCase();
                 const hasMatch = this.enemies.some(enemy => enemy.isVisible() && enemy.matchWord.startsWith(testInput));
                 if (hasMatch) {
@@ -574,7 +576,7 @@ export class Game {
             totalMinions: 0
         };
 
-        let speedMultiplier = 1 + (this.score / 1000);
+        let speedMultiplier = 1 + (this.score / 10000);
         let bossEnemy = new Enemy(bossWord, ENEMY_TYPES.BOSS, speedMultiplier);
         bossEnemy.bossGroupId = groupId;
         
@@ -587,7 +589,6 @@ export class Game {
         if (!groupInfo) return;
 
         let numToSpawn = groupInfo.splitCount;
-        let speedMultiplier = 1 + (this.score / 1000);
         
         let words1 = [...groupInfo.data.boss_words_set_1].map(w => w.toLowerCase());
         let words2 = [...groupInfo.data.boss_words_set_2].map(w => w.toLowerCase());
@@ -639,7 +640,7 @@ export class Game {
 
         let angleStep = (Math.PI * 2) / selectedWords.length;
         for (let i = 0; i < selectedWords.length; i++) {
-            let minion = new Enemy(selectedWords[i], ENEMY_TYPES.BOSS_MINION, speedMultiplier);
+            let minion = new Enemy(selectedWords[i], ENEMY_TYPES.BOSS_MINION, 1);
             
             let angle = i * angleStep;
             let distance = 120 + Math.random() * 40; 

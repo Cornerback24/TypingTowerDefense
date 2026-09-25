@@ -8,9 +8,11 @@ const DIFFICULTY_RANK = {
     [ENEMY_TYPES.SLOW_EASY]: 1
 };
 
+const MIN_FIRE_RATE = 1000;
+
 export class MorphTower {
     static getBaseStats() {
-        return { range: 250, fireRate: 3000 };
+        return { range: 250, fireRate: 4500 };
     }
 
     static calculateETMPS(stats) {
@@ -33,7 +35,7 @@ export class MorphTower {
             if (currentStats.range >= Config.MAX_TOWER_RANGE) return 0;
             newStats.range = Math.min(Config.MAX_TOWER_RANGE, newStats.range + amount);
         } else if (upgradeType === 'fireRate') {
-            newStats.fireRate = Math.max(500, newStats.fireRate - amount);
+            newStats.fireRate = Math.max(MIN_FIRE_RATE, newStats.fireRate - amount);
         }
         
         let newETMPS = MorphTower.calculateETMPS(newStats);
@@ -119,14 +121,14 @@ export class MorphTower {
         if (!upg || upg.maxed) return false;
         
         if (type === 'range') this.range = Math.min(Config.MAX_TOWER_RANGE, this.range + upg.amount);
-        else if (type === 'fireRate') this.fireRate = Math.max(500, this.fireRate - upg.amount); // Min fire rate 500ms
+        else if (type === 'fireRate') this.fireRate = Math.max(MIN_FIRE_RATE, this.fireRate - upg.amount);
 
         upg.level++;
         
         // Recalculate next cost based on new stats
         let currentStats = { range: this.range, fireRate: this.fireRate };
         
-        if (type === 'fireRate' && this.fireRate <= 500) {
+        if (type === 'fireRate' && this.fireRate <= MIN_FIRE_RATE) {
             upg.maxed = true;
             upg.cost = null;
         } else if (type === 'range' && this.range >= Config.MAX_TOWER_RANGE) {
@@ -197,20 +199,12 @@ export class MorphTower {
         this.markBeam(primary, game, Config.MORPH_ABSORB_DURATION);
     }
 
-    applyNudge(target, game) {
-        const dx = target.x - game.base.x;
-        const dy = target.y - game.base.y;
-        const dist = Math.hypot(dx, dy) || 1;
-        target.startSpawnAnimation(
-            target.x + (dx / dist) * Config.MORPH_NUDGE_PX,
-            target.y + (dy / dist) * Config.MORPH_NUDGE_PX,
-            Config.MORPH_NUDGE_DURATION
-        );
-        this.markBeam(target, game);
-    }
-
     update(enemies, game) {
         if (game.timeElapsed * 1000 - this.lastFired < this.fireRate) {
+            return;
+        }
+        if (game.lastLetterTypedAt == null ||
+            game.timeElapsed - game.lastLetterTypedAt > Config.MORPH_TYPING_WINDOW) {
             return;
         }
 
@@ -219,7 +213,6 @@ export class MorphTower {
 
         eligible.sort((a, b) => (DIFFICULTY_RANK[b.type] || 0) - (DIFFICULTY_RANK[a.type] || 0));
 
-        // Prefer merge: first primary (by tier) that has a tether partner
         for (const primary of eligible) {
             const partner = this.findPartner(primary, eligible);
             if (partner) {
@@ -228,10 +221,6 @@ export class MorphTower {
                 return;
             }
         }
-
-        // Nudge fallback: push highest-tier isolate slightly away from the base
-        this.applyNudge(eligible[0], game);
-        this.lastFired = game.timeElapsed * 1000;
     }
 
     draw(ctx, isSelected) {

@@ -18,11 +18,10 @@ ETMPS is evaluated on a **fixed reference field** (not live score), so shop pric
 | `RANGE_VALUE_EXP` (0.5) | Extra convexity on range. Each +50 on a larger circle costs more. 0 would keep flat range prices. |
 | `MAX_TOWER_RANGE` (500) | Hard cap on Slow and Morph range upgrades. Below full-map coverage from center (~918 to a corner). |
 | `LEAK_FRACTION` (0.08) | Slow converts only this slice of delay into equivalent removal. |
-| `MORPH_STICKINESS` (0.2) | Merge removes a unit and frees that partner’s threat (spawn may refill); this fraction of Δthreat sticks. Nudge fallback is ignored in ETMPS. Higher than the old tier-drop stickiness (0.15). |
-| `MORPH_UPTIME` (0.70) | Idle time, typing lock, and untargetable bosses/minions. |
-| `MORPH_MERGE_TETHER` (120) | Max distance between merge primary and partner. |
-| `MORPH_NUDGE_PX` (22) | Outward radial push (px) when no merge partner is in tether range. |
-| `MORPH_NUDGE_DURATION` (0.18) | Duration of the nudge spawn animation in seconds. |
+| `MORPH_STICKINESS` (0.2) | Merge removes a unit and frees that partner’s threat (spawn may refill); this fraction of Δthreat sticks. Higher than the old tier-drop stickiness (0.15). |
+| `MORPH_UPTIME` (0.70) | Idle gaps, typing lock, typing-window downtime, and untargetable bosses/minions. |
+| `MORPH_MERGE_TETHER` (200) | Max distance between merge primary and partner. |
+| `MORPH_TYPING_WINDOW` (2) | Seconds since any letter typed (hit or miss, map-wide) required for Morphs to merge. |
 | `BASE_COST_PER_ETMPS` (700) | Dollars per ETMPS for a new tower. Must stay **≳ 600** so `dM/ds` cannot beat post-5000 regen (`dR/ds = 0.001` if all money is spent on towers). |
 | `UPG_COST_PER_ETMPS` (875) | 1.25× base; mild extra cost on tall upgrades. |
 
@@ -50,7 +49,9 @@ Overlapping Slow auras do not stack (`Math.min` on `speedModifier`).
 
 ### 2. Morph Tower
 
-Morph’s primary shot merges two eligible enemies in the same merge group. Combat tiers (Basic / Tough / Elite) merge among themselves: the partner is absorbed with no payout; the survivor keeps the higher tier (stay-same when equal), re-rolls a word from that tier’s pool (never ≤2 chars), takes `min` speed and `max` threat. Slow Easy only merges with Slow Easy (stays Slow Easy, re-rolls a super-short word); Super Easy only with Super Easy. Nudge fallback (no compatible partner) pushes the target a short distance away from the base — word, type, and threat stay unchanged; nudge is not priced into ETMPS. Bosses and minions stay untargetable.
+Morph merges two eligible enemies in the same merge group when fire-rate cooldown is ready and any letter was typed anywhere within `MORPH_TYPING_WINDOW` seconds (correct or typo; not proximity-dependent). Combat tiers (Basic / Tough / Elite) merge among themselves: the partner is absorbed with no payout; the survivor keeps the higher tier (stay-same when equal), re-rolls a word from that tier’s pool (never ≤2 chars), takes `min` speed and `max` threat. Slow Easy only merges with Slow Easy (stays Slow Easy, re-rolls a super-short word); Super Easy only with Super Easy. Bosses and minions stay untargetable. Without a tether partner or recent typing, Morph does nothing.
+
+Base fire rate is 4500ms; upgrades step −500ms down to a 1000ms floor (4500 → 4000 → … → 1000).
 
 Merge frees the absorbed partner’s threat on the spawn cap, so refill can still happen; `MORPH_STICKINESS` models how much of that removal sticks.
 
@@ -62,7 +63,7 @@ Merge frees the absorbed partner’s threat on the spawn cap, so refill can stil
 *   At base range this is 1, same as the old linear uptime. Later +50 steps cost more.
 *   Range upgrades stop at `MAX_TOWER_RANGE` (500) and show MAX, same as fire rate.
 
-Fire rate scales as `1 / interval`, so the last steps toward 500ms are expensive. Range scales with the extra exponent, so repeated range purchases also rise.
+Fire rate scales as `1 / interval`, so the last steps toward 1000ms are expensive. Range scales with the extra exponent, so repeated range purchases also rise.
 
 ---
 
